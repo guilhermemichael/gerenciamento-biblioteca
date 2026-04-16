@@ -16,4 +16,4 @@ class AuthorSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
         include_fk = True
 
-    books = ma.Nested(BookSchema, many=True)
+    books = ma.Nested(BookSchema, many=True, exclude=("author_id",))

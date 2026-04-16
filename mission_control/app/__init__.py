@@ -1,18 +1,12 @@
-import flask as _flask
-import flask.json as _flask_json
-import json as _json
+from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
-from markupsafe import Markup
-
-# Flasgger expects flask.Markup and flask.json.JSONEncoder on Flask 3.x.
-_flask.Markup = Markup
-_flask_json.JSONEncoder = _json.JSONEncoder
-
 from flasgger import Swagger
 from .database import db, migrate, ma
 from .routes import api_v1
 import config
+
+load_dotenv()
 
 
 def create_app(config_object=None):

@@ -8,7 +8,7 @@ class Author(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     books = db.relationship(
         "Book",
-        backref="writer",
+        backref="author",
         lazy=True,
         cascade="all, delete-orphan",
     )

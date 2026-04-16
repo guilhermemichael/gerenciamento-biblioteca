@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flasgger import swag_from
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from ..database import db
 from ..models.author import Author
@@ -36,22 +38,36 @@ def create_author():
     if not data:
         return jsonify({"error": "Payload Vazio"}), 400
 
+    author_schema = AuthorSchema()
     try:
-        author_schema = AuthorSchema()
         new_author = author_schema.load(data)
         db.session.add(new_author)
         db.session.commit()
         return jsonify(author_schema.dump(new_author)), 201
-    except Exception as exc:
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+    except IntegrityError:
         db.session.rollback()
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Registro duplicado ou chave inválida"}), 409
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Erro interno"}), 500
 
 
 @api_v1.route("/authors", methods=["GET"])
 def list_authors():
-    authors = Author.query.all()
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+    pagination = Author.query.paginate(page=page, per_page=per_page, error_out=False)
     author_schema = AuthorSchema(many=True)
-    return jsonify(author_schema.dump(authors)), 200
+    return jsonify(
+        {
+            "items": author_schema.dump(pagination.items),
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "total": pagination.total,
+        }
+    ), 200
 
 
 @api_v1.route("/books", methods=["POST"])
@@ -83,19 +99,33 @@ def create_book():
     if not data:
         return jsonify({"error": "Payload Vazio"}), 400
 
+    book_schema = BookSchema()
     try:
-        book_schema = BookSchema()
         new_book = book_schema.load(data)
         db.session.add(new_book)
         db.session.commit()
         return jsonify(book_schema.dump(new_book)), 201
-    except Exception as exc:
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+    except IntegrityError:
         db.session.rollback()
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Registro duplicado ou chave inválida"}), 409
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Erro interno"}), 500
 
 
 @api_v1.route("/books", methods=["GET"])
 def list_books():
-    books = Book.query.all()
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+    pagination = Book.query.paginate(page=page, per_page=per_page, error_out=False)
     book_schema = BookSchema(many=True)
-    return jsonify(book_schema.dump(books)), 200
+    return jsonify(
+        {
+            "items": book_schema.dump(pagination.items),
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "total": pagination.total,
+        }
+    ), 200
